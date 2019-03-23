@@ -384,3 +384,19 @@ type WsMiniMarketsStatEvent struct {
 	BaseVolume  string `json:"v"`
 	QuoteVolume string `json:"q"`
 }
+type WsMiniMarketsStatServeHandler func(event WsMiniMarketsStatEvent)
+
+func WsMiniMarketsStatServe(symbol string, handler WsMiniMarketsStatServeHandler, errHandler ErrHandler) (doneC, stopC chan struct{}, err error) {
+	endpoint := fmt.Sprintf("%s/%s@miniTicker", baseURL, strings.ToLower(symbol))
+	cfg := newWsConfig(endpoint)
+	wsHandler := func(message []byte) {
+		var event WsMiniMarketsStatEvent
+		err := json.Unmarshal(message, &event)
+		if err != nil {
+			errHandler(err)
+			return
+		}
+		handler(event)
+	}
+	return wsServe(cfg, wsHandler, errHandler)
+}
